@@ -126,13 +126,13 @@
       <ol>
         <li><strong>Haz clic en el icono de tu bloqueador</strong> (AdBlock, uBlock, etc.) en la barra de extensiones</li>
         <li><strong>Selecciona "Desactivar en este sitio"</strong> o "Pausar"</li>
-        <li><strong>Recarga esta página</strong> presionando F5 o Ctrl+R</li>
+        <li><strong>Recarga esta página</strong> l </li>
       </ol>
       <p><em>Si usas Brave: Desactiva "Brave Shields" en la barra de direcciones</em></p>
     </div>
     
     <div style="margin-top: 30px;">
-      <button onclick="location.reload()" class="btn">Ya desactivé el bloqueador, recargar</button>
+      <button onclick="location.reload()" class="btn">recargar pagina</button>
     </div>
   </div>
 
