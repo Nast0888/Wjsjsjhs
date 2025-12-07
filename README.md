@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Verificación Requerida</title>
   <style>
-    /* Todo oculto inicialmente */
     body {
       display: none;
       font-family: Arial, sans-serif;
@@ -13,7 +12,6 @@
       background: #f0f0f0;
     }
     
-    /* Solo se muestran después de JS */
     #loading {
       display: block;
       position: fixed;
@@ -41,10 +39,6 @@
       border-left: 5px solid #e74c3c;
     }
     
-    h1 {
-      margin-top: 0;
-    }
-    
     .btn {
       display: inline-block;
       padding: 12px 30px;
@@ -69,34 +63,9 @@
       border-radius: 5px;
       margin: 20px 0;
     }
-    
-    /* Elementos trampa - Ocultos para humanos, visibles para bloqueadores */
-    .banner-container, .sponsored-content, .promo-box {
-      position: absolute;
-      opacity: 0.001;
-      pointer-events: none;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-    }
-    
-    /* Clases que los bloqueadores buscan */
-    .adsbygoogle, .ad-slot, .ad-container, .ad-wrapper,
-    .ad-banner, .google-ad, .ad-placement {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
   </style>
 </head>
 <body>
-  <!-- Pantalla de carga inicial -->
   <div id="loading">
     Verificando seguridad...
     <div style="margin-top: 20px; font-size: 14px; color: #999;">
@@ -104,7 +73,6 @@
     </div>
   </div>
   
-  <!-- Mensaje de ÉXITO (sin bloqueador) -->
   <div id="successMessage" class="message success" style="display: none;">
     <h1 style="color: #27ae60;">✓ Verificación Exitosa</h1>
     <p>Redirigiendo al contenido en <span id="countdown">3</span> segundos...</p>
@@ -117,7 +85,6 @@
     <a href="#" id="directLink" class="btn btn-success">Acceder al contenido ahora</a>
   </div>
   
-  <!-- Mensaje de ERROR (con bloqueador) -->
   <div id="errorMessage" class="message error" style="display: none;">
     <h1 style="color: #e74c3c;">⛔ Bloqueador Detectado</h1>
     <p><strong>Se ha detectado un bloqueador de anuncios o contenido.</strong></p>
@@ -128,189 +95,238 @@
         <li><strong>Haz clic en el icono de tu bloqueador</strong> (AdBlock, uBlock, etc.) en la barra de extensiones</li>
         <li><strong>Selecciona "Desactivar en este sitio"</strong> o "Pausar"</li>
         <li><strong>Recarga esta página</strong> presionando F5 o Ctrl+R</li>
-        <li><strong>O haz clic en el botón verde "Recargar Página"</strong> abajo</li>
       </ol>
       <p><em>Si usas Brave: Desactiva "Brave Shields" en la barra de direcciones</em></p>
       <p><em>Si usas Opera: Desactiva "Bloqueador de anuncios" en Configuración del sitio</em></p>
-      <p style="color: #27ae60; font-weight: bold; margin-top: 10px;">
-        ⚠️ Importante: Después de desactivar el bloqueador, debes RECARGAR la página
-      </p>
     </div>
-    
-    <p style="color: #666; font-size: 14px;">
-      Esta verificación es necesaria para prevenir acceso automatizado y asegurar la disponibilidad del servicio.
-    </p>
     
     <div style="margin-top: 30px;">
-      <button onclick="hardReload()" class="btn btn-success">Recargar Página</button>
-      <button onclick="testWithoutCache()" class="btn">Probar sin caché</button>
-    </div>
-    
-    <!-- Información de diagnóstico (solo visible en consola) -->
-    <div id="debugInfo" style="display: none; font-size: 12px; color: #999; margin-top: 20px; text-align: left;">
-      Información de diagnóstico disponible en consola (F12)
+      <button onclick="location.reload()" class="btn">Ya desactivé el bloqueador, recargar</button>
     </div>
   </div>
 
-  <!-- ================= TRAMPAS MEJORADAS ================= -->
-  <!-- NOTA: Estos elementos NO deben estar ocultos con CSS, para que los bloqueadores los vean -->
-  <div id="adTest1" class="ad-banner" style="width: 1px; height: 1px; position: absolute; top: -1px; left: -1px;"></div>
-  <div id="adTest2" class="adsbygoogle" style="display: inline-block !important; width: 1px; height: 1px;"></div>
-  <div id="adTest3" data-ad="true" style="width: 1px; height: 1px; position: absolute;"></div>
+  <!-- ================= ELEMENTOS TRAMPA ================= -->
+  <!-- Elementos que serán modificados por bloqueadores -->
+  <div id="adBanner" class="ad-banner" style="height: 1px; width: 1px; position: absolute; top: 0; left: 0; background: transparent;"></div>
+  <div id="googleAd" class="adsbygoogle" style="display: inline-block !important; width: 1px; height: 1px;"></div>
+  <ins class="adsbygoogle" style="display:inline-block;width:1px;height:1px" data-ad-client="ca-pub-123456789" data-ad-slot="123456789"></ins>
+  
+  <!-- Elemento que los bloqueadores intentan ocultar -->
+  <div id="adContainer" style="position: absolute; width: 300px; height: 250px; top: -1000px; left: -1000px;">
+    <div class="advertisement" style="width: 100%; height: 100%;"></div>
+  </div>
 
-  <!-- ================= LÓGICA PRINCIPAL MEJORADA ================= -->
+  <!-- ================= LÓGICA DE DETECCIÓN MEJORADA ================= -->
   <script>
     // URL de destino
     const TARGET_URL = "https://devuploads.com/nvgoz9e9zjag";
+    let adBlockDetected = false;
     
-    // Función para recargar sin caché
-    function hardReload() {
-      console.log('Recargando página sin caché...');
-      window.location.reload(true);
-    }
-    
-    // Función para probar sin caché
-    function testWithoutCache() {
-      console.log('Forzando recarga sin caché...');
-      // Borrar localStorage y sessionStorage
-      localStorage.clear();
-      sessionStorage.clear();
+    // Función para detectar bloqueadores de forma agresiva
+    function detectAdBlock() {
+      console.log('🔍 Iniciando detección de bloqueador...');
       
-      // Forzar recarga sin caché
-      window.location.href = window.location.href + '?nocache=' + Date.now();
+      // MÉTODO 1: Verificar si elementos ad están ocultos
+      const checkElements = () => {
+        const elements = [
+          { id: 'adBanner', name: 'Banner Ad' },
+          { id: 'googleAd', name: 'Google Ad' },
+          { id: 'adContainer', name: 'Ad Container' }
+        ];
+        
+        elements.forEach(el => {
+          const element = document.getElementById(el.id);
+          if (element) {
+            const style = window.getComputedStyle(element);
+            console.log(`Elemento ${el.name}: display=${style.display}, visibility=${style.visibility}, height=${element.offsetHeight}`);
+            
+            // Si el elemento está completamente oculto
+            if (style.display === 'none' || 
+                style.visibility === 'hidden' ||
+                element.offsetHeight === 0 ||
+                element.offsetWidth === 0) {
+              console.log(`🚨 ${el.name} está oculto - Posible bloqueador`);
+              adBlockDetected = true;
+            }
+          }
+        });
+      };
+      
+      // MÉTODO 2: Verificar scripts bloqueados
+      const checkScripts = () => {
+        return new Promise((resolve) => {
+          const testScript = document.createElement('script');
+          testScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
+          testScript.async = true;
+          
+          let scriptBlocked = false;
+          
+          testScript.onerror = function() {
+            console.log('🚨 Script de Google Ads bloqueado');
+            scriptBlocked = true;
+            resolve(true);
+          };
+          
+          testScript.onload = function() {
+            console.log('✓ Script de Google Ads cargado');
+            resolve(false);
+          };
+          
+          // Timeout para scripts que no cargan
+          setTimeout(() => {
+            if (!scriptBlocked) {
+              console.log('⚠️ Timeout en script de ads');
+              resolve(false);
+            }
+          }, 1500);
+          
+          document.head.appendChild(testScript);
+        });
+      };
+      
+      // MÉTODO 3: Fetch a dominio de ads
+      const checkFetch = () => {
+        return new Promise((resolve) => {
+          fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', {
+            method: 'HEAD',
+            mode: 'no-cors',
+            cache: 'no-cache'
+          })
+          .then(() => {
+            console.log('✓ Fetch a adsbygoogle exitoso');
+            resolve(false);
+          })
+          .catch(error => {
+            console.log('🚨 Fetch bloqueado:', error);
+            resolve(true);
+          });
+        });
+      };
+      
+      // MÉTODO 4: Crear iframe de ad y verificar
+      const checkIframe = () => {
+        return new Promise((resolve) => {
+          const iframe = document.createElement('iframe');
+          iframe.src = 'https://googleads.g.doubleclick.net/pagead/html/r20241204/r20190131/zrt_lookup.html';
+          iframe.style.width = '1px';
+          iframe.style.height = '1px';
+          iframe.style.position = 'absolute';
+          iframe.style.top = '-100px';
+          iframe.style.left = '-100px';
+          iframe.style.visibility = 'hidden';
+          
+          let iframeLoaded = false;
+          
+          iframe.onload = function() {
+            console.log('✓ Iframe de ads cargado');
+            iframeLoaded = true;
+            document.body.removeChild(iframe);
+            resolve(false);
+          };
+          
+          iframe.onerror = function() {
+            console.log('🚨 Iframe de ads bloqueado');
+            document.body.removeChild(iframe);
+            resolve(true);
+          };
+          
+          document.body.appendChild(iframe);
+          
+          // Timeout
+          setTimeout(() => {
+            if (!iframeLoaded) {
+              console.log('⚠️ Iframe timeout - posible bloqueo');
+              if (document.body.contains(iframe)) {
+                document.body.removeChild(iframe);
+              }
+              resolve(true);
+            }
+          }, 2000);
+        });
+      };
+      
+      // MÉTODO 5: Verificar si hay reglas CSS de bloqueadores
+      const checkCSSRules = () => {
+        try {
+          // Verificar reglas CSS comunes de bloqueadores
+          const testDiv = document.createElement('div');
+          testDiv.className = 'adsbygoogle ad-container ad-banner';
+          testDiv.style.cssText = 'width: 300px; height: 250px; position: absolute; top: 0; left: 0;';
+          document.body.appendChild(testDiv);
+          
+          setTimeout(() => {
+            const style = window.getComputedStyle(testDiv);
+            if (style.display === 'none' || style.visibility === 'hidden') {
+              console.log('🚨 Reglas CSS de bloqueador detectadas');
+              adBlockDetected = true;
+            }
+            document.body.removeChild(testDiv);
+          }, 100);
+        } catch (e) {
+          console.log('Error en checkCSSRules:', e);
+        }
+      };
+      
+      // Ejecutar todas las verificaciones
+      const runAllChecks = async () => {
+        try {
+          console.log('=== EJECUTANDO VERIFICACIONES ===');
+          
+          // Verificación 1: Elementos
+          checkElements();
+          checkCSSRules();
+          
+          // Verificación 2: Scripts
+          const scriptBlocked = await checkScripts();
+          if (scriptBlocked) adBlockDetected = true;
+          
+          // Verificación 3: Fetch
+          const fetchBlocked = await checkFetch();
+          if (fetchBlocked) adBlockDetected = true;
+          
+          // Verificación 4: Iframe
+          const iframeBlocked = await checkIframe();
+          if (iframeBlocked) adBlockDetected = true;
+          
+          console.log('=== RESULTADO FINAL ===');
+          console.log('Bloqueador detectado:', adBlockDetected);
+          
+          // Mostrar resultado después de 2 segundos
+          setTimeout(showResult, 2000);
+          
+        } catch (error) {
+          console.error('Error en verificación:', error);
+          setTimeout(showResult, 2000);
+        }
+      };
+      
+      runAllChecks();
     }
     
-    // Función principal que se ejecuta al cargar
-    function initVerification() {
-      // Mostrar body inmediatamente
+    // Mostrar resultado
+    function showResult() {
       document.body.style.display = 'block';
       document.getElementById('loading').style.display = 'none';
       
-      // Esperar un momento para que los bloqueadores actúen
-      setTimeout(performAdBlockCheck, 500);
-    }
-    
-    // Función de verificación - SÍNCRONA y RESETEABLE
-    function performAdBlockCheck() {
-      console.log('=== INICIANDO VERIFICACIÓN DE BLOQUEADOR ===');
-      
-      let isBlocked = false;
-      let reasons = [];
-      
-      // PRUEBA 1: Verificar elementos ad por su estilo COMPUTADO
-      const adElements = ['adTest1', 'adTest2', 'adTest3'];
-      
-      adElements.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-          const computedStyle = window.getComputedStyle(element);
-          const originalHTML = element.outerHTML;
-          
-          console.log(`Elemento ${id}:`);
-          console.log(`- display: ${computedStyle.display}`);
-          console.log(`- visibility: ${computedStyle.visibility}`);
-          console.log(`- height: ${element.offsetHeight}px`);
-          console.log(`- width: ${element.offsetWidth}px`);
-          console.log(`- opacity: ${computedStyle.opacity}`);
-          
-          // Si el bloqueador modificó el elemento
-          if (computedStyle.display === 'none' || 
-              computedStyle.visibility === 'hidden' ||
-              element.offsetHeight === 0 ||
-              element.offsetWidth === 0 ||
-              computedStyle.opacity === '0') {
-            
-            isBlocked = true;
-            reasons.push(`Elemento ${id} modificado por bloqueador`);
-            console.log(`⚠️ ${id} DETECTADO COMO BLOQUEADO`);
-          } else {
-            console.log(`✓ ${id} sin modificaciones`);
-          }
-        }
-      });
-      
-      // PRUEBA 2: Intentar crear y detectar un script de ads
-      try {
-        const testScript = document.createElement('script');
-        testScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
-        testScript.async = true;
-        
-        // Establecer un timeout para la carga
-        let scriptLoaded = false;
-        testScript.onload = function() {
-          scriptLoaded = true;
-          console.log('✓ Script de Google Ads cargado correctamente');
-        };
-        
-        testScript.onerror = function() {
-          isBlocked = true;
-          reasons.push('Script de Google Ads bloqueado');
-          console.log('⚠️ Script de Google Ads bloqueado');
-        };
-        
-        // Agregar el script al documento
-        document.head.appendChild(testScript);
-        
-        // Esperar un momento para ver si se bloquea
-        setTimeout(() => {
-          if (!scriptLoaded) {
-            // Verificar si el script aún está en el DOM
-            if (!document.contains(testScript)) {
-              isBlocked = true;
-              reasons.push('Script de Google Ads removido');
-              console.log('⚠️ Script de Google Ads removido del DOM');
-            }
-          }
-          showFinalResult(isBlocked, reasons);
-        }, 1000);
-        
-      } catch (error) {
-        console.error('Error en prueba de script:', error);
-        showFinalResult(isBlocked, reasons);
-      }
-      
-      // Timeout de seguridad
-      setTimeout(() => {
-        showFinalResult(isBlocked, reasons);
-      }, 1500);
-    }
-    
-    // Mostrar resultado final
-    function showFinalResult(isBlocked, reasons) {
-      console.log('=== RESULTADO DE VERIFICACIÓN ===');
-      console.log(`Bloqueador detectado: ${isBlocked ? 'SÍ' : 'NO'}`);
-      if (reasons.length > 0) {
-        console.log('Razones:', reasons);
-      }
-      
-      if (isBlocked) {
-        // MOSTRAR ERROR
+      if (adBlockDetected) {
+        console.log('Mostrando mensaje de bloqueador');
         document.getElementById('errorMessage').style.display = 'block';
         document.getElementById('successMessage').style.display = 'none';
-        document.getElementById('debugInfo').style.display = 'block';
-        
-        console.log('INSTRUCCIONES PARA EL USUARIO:');
-        console.log('1. Desactiva tu bloqueador de anuncios');
-        console.log('2. Haz clic en "Recargar Página"');
-        console.log('3. La verificación se reiniciará desde cero');
-        
       } else {
-        // MOSTRAR ÉXITO
+        console.log('Mostrando éxito - redirigiendo');
         document.getElementById('successMessage').style.display = 'block';
         document.getElementById('errorMessage').style.display = 'none';
-        
-        console.log('✓ Todo correcto, redirigiendo...');
         setupRedirect();
       }
     }
     
-    // Configurar redirección automática (3 segundos)
+    // Configurar redirección
     function setupRedirect() {
       const countdownEl = document.getElementById('countdown');
       const progressBar = document.getElementById('progressBar');
       const directLink = document.getElementById('directLink');
       
-      // Configurar enlace directo
+      // Configurar enlace
       if (directLink) {
         directLink.href = TARGET_URL;
         directLink.onclick = function(e) {
@@ -319,7 +335,7 @@
         };
       }
       
-      // Contador regresivo de 3 segundos
+      // Contador de 3 segundos
       let seconds = 3;
       const interval = setInterval(function() {
         seconds--;
@@ -337,13 +353,19 @@
       }, 1000);
     }
     
-    // Iniciar la verificación cuando se carga la página
-    window.addEventListener('load', initVerification);
+    // Iniciar detección cuando la página cargue
+    window.addEventListener('load', function() {
+      // Pequeño delay para que los bloqueadores actúen
+      setTimeout(detectAdBlock, 500);
+    });
     
-    // También iniciar si DOM ya está listo
-    if (document.readyState === 'interactive' || document.readyState === 'complete') {
-      setTimeout(initVerification, 100);
-    }
+    // Verificación periódica por si cambia el estado
+    setInterval(() => {
+      if (!adBlockDetected && document.getElementById('errorMessage').style.display === 'block') {
+        console.log('Verificando estado actual...');
+        location.reload();
+      }
+    }, 5000);
   </script>
 </body>
 </html>
